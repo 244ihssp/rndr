@@ -6,6 +6,17 @@ const PORT = process.env.PORT || 3000;
 const GITHUB_RAW_URL = "https://raw.githubusercontent.com/244ihssp/IlIIS/refs/heads/main/IlIlP";
 
 app.use((req, res, next) => {
+    const userAgent = req.headers["user-agent"] || "";
+    const origin = req.headers.origin || "";
+
+    if (userAgent.match(/Mozilla|Chrome|Safari|Edge/i)) {
+        return res.status(403).send("Access denied (Browser blocked)");
+    }
+
+    if (origin && !origin.includes("roblox.com")) {
+        return res.status(403).send("Access denied (Invalid origin)");
+    }
+
     res.header("Access-Control-Allow-Origin", "*");
     next();
 });
@@ -15,8 +26,8 @@ app.get("/", async (req, res) => {
         const response = await axios.get(GITHUB_RAW_URL);
         res.type("text/plain").send(response.data);
     } catch (error) {
-        res.status(500).send("Error");
+        res.status(500).send("Error loading script");
     }
 });
 
-app.listen(PORT, () => console.log(`Proxy: ${PORT}`));
+app.listen(PORT, () => console.log(`Proxy running on port ${PORT}`));
