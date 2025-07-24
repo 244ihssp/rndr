@@ -3,6 +3,9 @@ const axios = require("axios");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+res.header("Access-Control-Allow-Origin", "*");
+res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+
 // URLs
 const GITHUB_RAW_URL = "https://raw.githubusercontent.com/244ihssp/IlIIS/main/IlIlP";
 const WHITELIST_URL = "https://raw.githubusercontent.com/lkjhg969/ffdsf/refs/heads/main/wl.txt";
