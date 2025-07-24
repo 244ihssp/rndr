@@ -3,7 +3,7 @@ const axios = require("axios");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const GITHUB_RAW_URL = "https://raw.githubusercontent.com/DEIN_USERNAME/REPO_NAME/BRANCH/SKRIPT.lua";
+const GITHUB_RAW_URL = "https://raw.githubusercontent.com/244ihssp/IlIIS/refs/heads/main/IlIlP";
 
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
