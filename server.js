@@ -15,8 +15,8 @@ app.get("/", async (req, res) => {
         const response = await axios.get(GITHUB_RAW_URL);
         res.type("text/plain").send(response.data);
     } catch (error) {
-        res.status(500).send("Fehler beim Laden des Skripts.");
+        res.status(500).send("Error");
     }
 });
 
-app.listen(PORT, () => console.log(`Proxy läuft auf Port ${PORT}`));
+app.listen(PORT, () => console.log(`Proxy: ${PORT}`));
