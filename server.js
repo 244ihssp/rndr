@@ -10,7 +10,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Haupt-Endpunkt
 app.get("/", async (req, res) => {
     try {
         const response = await axios.get(GITHUB_RAW_URL);
