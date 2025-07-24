@@ -3,31 +3,36 @@ const axios = require("axios");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const GITHUB_RAW_URL = "https://raw.githubusercontent.com/244ihssp/IlIIS/refs/heads/main/IlIlP";
+// URLs
+const GITHUB_RAW_URL = "https://raw.githubusercontent.com/244ihssp/IlIIS/main/IlIlP";
+const WHITELIST_URL = "https://raw.githubusercontent.com/lkjhg969/ffdsf/refs/heads/main/wl.txt";
 
-app.use((req, res, next) => {
-    const userAgent = req.headers["user-agent"] || "";
-    const origin = req.headers.origin || "";
-
-    if (userAgent.match(/Mozilla|Chrome|Safari|Edge/i)) {
-        return res.status(403).send("Access denied (Browser blocked)");
-    }
-
-    if (origin && !origin.includes("roblox.com")) {
-        return res.status(403).send("Access denied (Invalid origin)");
-    }
-
-    res.header("Access-Control-Allow-Origin", "*");
-    next();
-});
-
-app.get("/", async (req, res) => {
+// Dynamische Whitelist
+async function loadWhitelist() {
     try {
-        const response = await axios.get(GITHUB_RAW_URL);
-        res.type("text/plain").send(response.data);
+        const response = await axios.get(WHITELIST_URL);
+        return response.data.split("\n").map(user => user.trim());
     } catch (error) {
-        res.status(500).send("Error loading script");
+        console.error("WL konnte nicht geladen werden:", error);
+        return [];
+    }
+}
+
+// Haupt-Endpunkt
+app.get("/", async (req, res) => {
+    const username = req.query.username;
+    const whitelist = await loadWhitelist();
+
+    if (!username || !whitelist.includes(username)) {
+        return res.status(403).send("Nicht in der WL.");
+    }
+
+    try {
+        const script = await axios.get(GITHUB_RAW_URL);
+        res.type("text/plain").send(script.data);
+    } catch (error) {
+        res.status(500).send("Skript konnte nicht geladen werden.");
     }
 });
 
-app.listen(PORT, () => console.log(`Proxy running on port ${PORT}`));
+app.listen(PORT, () => console.log(`WL-Proxy läuft auf ${PORT}`));
