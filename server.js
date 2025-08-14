@@ -7,15 +7,13 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// AES-256-CBC Verschlüsselung
-const ENCRYPTION_KEY = Buffer.from(process.env.ENCRYPTION_KEY, "hex"); // 32 Bytes
-const IV = Buffer.from(process.env.IV, "hex"); // 16 Bytes
+const ENCRYPTION_KEY = Buffer.from(process.env.ENCRYPTION_KEY, "hex");
+const IV = Buffer.from(process.env.IV, "hex");
 
 if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length !== 32 || !IV || IV.length !== 16) {
-    throw new Error("ENCRYPTION_KEY und IV müssen gesetzt sein!");
+    throw new Error("ENCRYPTION_KEY (32 bytes hex) and IV (16 bytes hex) must be set!");
 }
 
-// Verschlüsseln
 function encrypt(text) {
     const cipher = crypto.createCipheriv("aes-256-cbc", ENCRYPTION_KEY, IV);
     let encrypted = cipher.update(text, "utf8");
@@ -23,7 +21,6 @@ function encrypt(text) {
     return encrypted.toString("hex");
 }
 
-// Entschlüsseln
 function decrypt(text) {
     const encrypted = Buffer.from(text, "hex");
     const decipher = crypto.createDecipheriv("aes-256-cbc", ENCRYPTION_KEY, IV);
@@ -32,8 +29,8 @@ function decrypt(text) {
     return decrypted.toString();
 }
 
-// Whitelist laden
 const WHITELIST_PATH = path.join(__dirname, "whitelist.txt");
+
 function loadWhitelist() {
     if (!fs.existsSync(WHITELIST_PATH)) return [];
     return fs.readFileSync(WHITELIST_PATH, "utf8")
@@ -43,16 +40,14 @@ function loadWhitelist() {
 }
 
 let WHITELIST = loadWhitelist();
-setInterval(() => { WHITELIST = loadWhitelist(); }, 60000); // Reload alle 60 Sekunden
+setInterval(() => { WHITELIST = loadWhitelist(); }, 60000);
 
 app.use(cors());
 
-// Normal Access Route
 app.get("/api/normal-access", (req, res) => {
-    const { roblox_username, roblox_id, creation_date } = req.query;
-
-    if (!roblox_username || !roblox_id || !creation_date) {
-        return res.status(400).json({ error: "Missing params" });
+    const { roblox_username, roblox_id } = req.query;
+    if (!roblox_username || !roblox_id) {
+        return res.status(400).json({ is_whitelisted: false, error: "Missing params" });
     }
 
     let matched = null;
@@ -60,41 +55,28 @@ app.get("/api/normal-access", (req, res) => {
     for (const entry of WHITELIST) {
         try {
             const r = JSON.parse(decrypt(entry));
-
-            // Exakte Übereinstimmung aller drei Werte
-            if (
-                r.roblox_id === roblox_id &&
-                r.username === roblox_username &&
-                r.creation_date === Number(creation_date)
-            ) {
-                matched = {
-                    is_whitelisted: true,
-                    username: r.username,
-                    roblox_id: r.roblox_id,
-                    creation_date: r.creation_date,
-                    discord_id: r.discord_id || null,
-                    expires: r.expires || null
-                };
-                break;
+            if (r.roblox_id === roblox_id || r.username === roblox_username) {
+                const isActive = !r.expires || Date.now() < r.expires;
+                if (isActive) {
+                    matched = {
+                        is_whitelisted: true,
+                        matched_type: r.roblox_id === roblox_id ? "roblox_id" : "roblox_username",
+                        matched_value: r.roblox_id === roblox_id ? roblox_id : roblox_username,
+                        username: r.username || null,
+                        roblox_id: r.roblox_id || null,
+                        discord_id: r.discord_id || null,
+                        expires: r.expires || null
+                    };
+                    break;
+                }
             }
-        } catch (e) {
-            console.warn("Fehler beim Lesen eines Whitelist-Eintrags:", e);
-        }
+        } catch(e) {}
     }
 
     if (!matched) return res.status(403).json({ error: "Access Denied" });
     res.json(matched);
 });
 
-// Server starten
 app.listen(PORT, () => {
-    console.log(`Server läuft auf Port ${PORT}`);
+    console.log(`Whitelist API läuft auf Port ${PORT}`);
 });
-
-// CLI: Whitelist-Eintrag generieren
-if (require.main === module && process.argv[2] === "gen") {
-    const obj = JSON.parse(process.argv[3]);
-    const encrypted = encrypt(JSON.stringify(obj));
-    console.log(encrypted);
-    process.exit(0);
-}
