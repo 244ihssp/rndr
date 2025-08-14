@@ -1,2 +1,1 @@
-node server.js gen '{"username":"NormalUser","roblox_id":"1234","discord_id":"5678"}'
-node server.js gen '{"username":"BoostUser","roblox_id":"2345","discord_id":"6789","boost_expires":<timestamp>}'
+
